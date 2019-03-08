@@ -3,8 +3,8 @@ package main
 import (
 	"net/http"
 
-	"github.com/selesy/go-html/filter"
-	"github.com/selesy/go-html/scrape"
+	"github.com/selesy/go-robot/filter"
+	"github.com/selesy/go-robot/scrape"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"

@@ -18,7 +18,7 @@ const mozTableClass = "folder-content"
 
 type MozFolder struct {
 	Path        string
-	Pescription string
+	Description string
 	Date        string
 	Size        string
 }
@@ -53,6 +53,22 @@ func mozHTML() error {
 	trows := scrape.FindAll(tbody, filter.Tag(atom.Tr))
 
 	log.Info("Row count:", len(trows))
+
+	var webidlurls []MozFolder
+	for _, n := range trows {
+		path := n.FirstChild
+		desc := path.NextSibling
+		date := desc.NextSibling
+		size := date.NextSibling
+		f := MozFolder{
+			Path:        scrape.Text(path),
+			Description: scrape.Text(desc),
+			Date:        scrape.Text(date),
+			Size:        scrape.Text(size),
+		}
+		webidlurls = append(webidlurls, f)
+	}
+	log.Info(webidlurls)
 
 	// tbody, tr, td/td/td/td =
 

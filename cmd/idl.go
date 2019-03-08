@@ -3,15 +3,20 @@ package main
 import (
 	"net/http"
 
+	"github.com/selesy/go-html/filter"
+	"github.com/selesy/go-html/scrape"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
-const moz = "https://dxr.mozilla.org/mozilla-central/source/dom/webidl/"
 const w3c = "http://w3c.github.io/html/single-page.html"
 const whatwg = "https://html.spec.whatwg.org/#the-body-element"
 
-type MozIDL struct {
+const mozFolderURL = "https://dxr.mozilla.org/mozilla-central/source/dom/webidl/"
+const mozTableClass = "folder-content"
+
+type MozFolder struct {
 	Path        string
 	Pescription string
 	Date        string
@@ -19,7 +24,7 @@ type MozIDL struct {
 }
 
 func mozHTML() error {
-	resp, err := http.Get(moz)
+	resp, err := http.Get(mozFolderURL)
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -33,51 +38,23 @@ func mozHTML() error {
 		return err
 	}
 
-	class := "folder-content"
-	var f func(*html.Node) *html.Node
-	f = func(n *html.Node) *html.Node {
-		if n.Type == html.ElementNode && n.Data == "table" && attribute(n, "class", class) {
-			return n
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			n := f(c)
-			if n != nil {
-				return n
-			}
-		}
+	table, ok := scrape.Find(doc, filter.Type(html.ElementNode), filter.Tag(atom.Table), filter.Class(mozTableClass))
+	if !ok {
+		log.Error("Failed to find the Mozilla data table")
 		return nil
 	}
 
-	table := f(doc)
-
-	if table == nil {
+	tbody, ok := scrape.Find(table, filter.Tag(atom.Tbody))
+	if !ok {
+		log.Error("Failed to find the Mozilla data table body")
 		return nil
 	}
-	log.Info(table.Data)
+
+	trows := scrape.FindAll(tbody, filter.Tag(atom.Tr))
+
+	log.Info("Row count:", len(trows))
 
 	// tbody, tr, td/td/td/td =
 
 	return nil
-}
-
-func attribute(n *html.Node, attrKey string, attrVal string) bool {
-	for _, attr := range n.Attr {
-		if attr.Key == attrKey && attr.Val == attrVal {
-			return true
-		}
-	}
-	return false
-}
-
-type finder struct{}
-
-type finderTest func(*html.Node) bool
-
-func (f finder) passes(n *html.Node, tests ...finderTest) bool {
-	for _, test := range tests {
-		if !test(n) {
-			return false
-		}
-	}
-	return true
 }
